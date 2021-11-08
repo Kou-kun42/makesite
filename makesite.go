@@ -8,18 +8,26 @@ import "flag"
 import "strings"
 
 
-func save(txt *string) {
-	file, err := ioutil.ReadFile(*txt)
+type HTML struct {
+	Name string
+	Text string
+}
+
+func save(txt string) {
+	file, err := ioutil.ReadFile(txt)
 	if err != nil {
 		panic(err)
 	}
-	name := strings.Split(*txt, ".")[0]
+	name := strings.Split(txt, ".")[0]
 	html, err := os.Create(fmt.Sprintf("%s.html", name))
 	if err != nil {
 		panic(err)
 	}
+
+	convert := HTML{name, string(file)}
+
 	tem := template.Must(template.New("template.tmpl").ParseFiles("template.tmpl"))
-	err = tem.Execute(html, file)
+	err = tem.Execute(html, convert)
 	if err != nil {
 		panic(err)
 	}
@@ -49,7 +57,35 @@ func main() {
 	// }
 
 	// Add flag to file
-	file := flag.String("file", "", "txt file to be rendered")
+	var file string
+	var dir string
+
+	flag.StringVar(&file, "file", "", "txt file to be rendered")
+	flag.StringVar(&dir, "dir", "", "dir to be used")
 	flag.Parse()
-	save(file)
+
+	if file != "" {
+		save(file)
+	}
+
+	if dir != "" {
+		var files []string
+
+		allFiles, err := ioutil.ReadDir(dir)
+		if err != nil {
+			panic(err)
+		}
+
+		for _, f := range allFiles {
+			name := strings.Split(f.Name(), ".")
+			if name[len(name)-1] == "txt" {
+				files = append(files, f.Name())
+			}
+		}
+
+		for _, txt := range files {
+			save(txt)
+		}
+	}
+	
 }
